@@ -1,4 +1,8 @@
 var JSSoup = require("jssoup").default;
+const { CacheIndex } = require("../../../lib/cache");
+// const mongoose = require("mongoose");
+
+import { useMongoose } from "@codestra/next-serverless-mongoose";
 
 async function scrapeGumtree(searchQuery: string) {
   const url = `https://www.gumtree.com.au/s-search-results.html?keywords=${searchQuery}&categoryId=&previousCategoryId=&locationStr=&locationId=0&radius=&sortByName=date&searchView=LIST&offerType=&priceType=&posterType=&topOnly=false&hpgOnly=false&highlightOnly=false&pageNum=1&action=default&maxPrice=&minPrice=&urgentOnly=false&categoryRedirected=true&pageSize=24`;
@@ -83,73 +87,92 @@ async function scrapeEbay(searchQuery: string) {
   }));
 }
 
+// connect to database
+
 export default function searchHandler({ query: { search } }: any, res: any) {
-  // getting results
-  console.log("Starting scrape");
+  useMongoose().then((mongoose: any) => {
+    console.log(mongoose.connection.readyState);
 
-  const start = new Date().getTime();
+    // getting results
+    // searching database
+    console.log("searching database");
+    CacheIndex.findOne({ query: search }).then((cache: any) => {
+      if (cache) {
+        res.json(cache.results);
+      } else {
+        console.log("Starting scrape");
 
-  scrapeGumtree(search).then((gumtreeResults) => {
-    scrapeEbay(search).then((ebayResults: any) => {
-      const end = new Date().getTime();
-      const time = end - start;
-      console.log(`time to scrape: ${time}ms`);
+        const start = new Date().getTime();
 
-      let results = gumtreeResults.concat(ebayResults);
+        scrapeGumtree(search).then((gumtreeResults) => {
+          scrapeEbay(search).then((ebayResults: any) => {
+            const end = new Date().getTime();
+            const time = end - start;
+            console.log(`time to scrape: ${time}ms`);
 
-      // simply all prices
-      results = results.map((result: any) => {
-        const price = result.price;
-        return { ...result, price: parseInt(price) };
-      });
+            let results = gumtreeResults.concat(ebayResults);
 
+            // simply all prices
+            results = results.map((result: any) => {
+              const price = result.price;
+              return { ...result, price: parseInt(price) };
+            });
 
-      // remove anything that's 4 times over the average
-      const average = results.reduce((acc, curr) => {
-        return acc + curr.price;
-      }, 0) / results.length;
+            // remove anything that's 4 times over the average
+            const average =
+              results.reduce((acc: any, curr: { price: any }) => {
+                return acc + curr.price;
+              }, 0) / results.length;
 
-      results = results.filter((result: any) => {
-        const price = result.price;
-        return price < average * 4;
-      });
+            results = results.filter((result: any) => {
+              const price = result.price;
+              return price < average * 4;
+            });
 
-      results = results.sort((a: any, b: any) => {
-        return a.price - b.price;
-      });
+            results = results.sort((a: any, b: any) => {
+              return a.price - b.price;
+            });
 
-      const minPrice = results[0].price;
-      const maxPrice = results[results.length - 1].price;
+            const minPrice = results[0].price;
+            const maxPrice = results[results.length - 1].price;
 
-      results = results.map((result: any) => {
-        let priceScore =
-          (parseFloat(result.price) - parseFloat(minPrice)) /
-          (parseFloat(maxPrice) - parseFloat(minPrice));
+            results = results.map((result: any) => {
+              let priceScore =
+                (parseFloat(result.price) - parseFloat(minPrice)) /
+                (parseFloat(maxPrice) - parseFloat(minPrice));
 
-        switch (true) {
-          case priceScore <= 0.25:
-            result.priceRating = "good";
-            break;
-          case priceScore <= 0.5:
-            result.priceRating = "ok";
-            break;
-          case priceScore <= 0.75:
-            result.priceRating = "bad";
-            break;
-          case priceScore <= 1:
-            result.priceRating = "very bad";
-            break;
-          default:
-            result.priceRating = "unknown";
-            break;
-        }
+              switch (true) {
+                case priceScore <= 0.25:
+                  result.priceRating = "good";
+                  break;
+                case priceScore <= 0.5:
+                  result.priceRating = "ok";
+                  break;
+                case priceScore <= 0.75:
+                  result.priceRating = "bad";
+                  break;
+                case priceScore <= 1:
+                  result.priceRating = "very bad";
+                  break;
+                default:
+                  result.priceRating = "unknown";
+                  break;
+              }
 
-        return { ...result };
-      });
+              // cache results
+              const NewCacheIndex = new CacheIndex({
+                query: search,
+                results,
+              });
+              NewCacheIndex.save();
 
-      res.status(200).json(results);
+              return { ...result };
+            });
+
+            res.status(200).json(results);
+          });
+        });
+      }
     });
   });
-
-  // sort by price
 }

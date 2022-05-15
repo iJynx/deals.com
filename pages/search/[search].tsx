@@ -51,13 +51,22 @@ const Home = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [showError, setShowError] = useState(false);
-
+  const [cached, setCached] = useState(false);
   // fetch
   const fetchData = async (search: string) => {
     setLoading(true);
     setError(false);
+
+    // time how long it takes
+    const start = Date.now();
     try {
       const data = await fetcher(`/api/search/${search}`);
+
+      // if the data is less than 1 second then set cached true
+      if (Date.now() - start < 1000) {
+        setCached(true);
+      }
+
       setResults(data);
     } catch (e) {
       setError(true);
@@ -111,6 +120,11 @@ const Home = () => {
       </div>
       {!(error || showError) ? (
         <SkeletonTheme borderRadius="2rem" duration={0.9}>
+          {!loading && (
+          <span className="ml-[11.7rem]">
+            Method: {cached ? "cached" : "scraped"}
+          </span>
+          )}
           <div className="flex flex-col gap-3 ml-[11.3rem] pt-4">
             {!loading ? (
               results.map((item: any) => (
