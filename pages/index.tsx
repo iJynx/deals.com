@@ -1,142 +1,69 @@
-import getConfig from 'next/config';
+import getConfig from "next/config";
 
-import Layout from '@/components/Layout';
+import ArrowLink from "@/components/interactive/links/ArrowLink";
 
 const { publicRuntimeConfig } = getConfig();
 const { name } = publicRuntimeConfig.site;
+import { useForm, SubmitHandler } from "react-hook-form";
+
+type Inputs = {
+  search: string;
+};
+
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSearch } from "@fortawesome/free-solid-svg-icons";
 
 const Home = () => {
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<Inputs>();
+  const onSubmit: SubmitHandler<Inputs> = (data) => {
+    // redirect to /search/query
+    const { search } = data;
+    const url = `/search/${search}`;
+    window.location.href = url;
+  };
+
   return (
-    <Layout>
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          <div className="prose prose-blue mx-auto">
-            <h1>{name}</h1>
-            <p>Welcome to my Next.js + Tailwind CSS starter template.</p>
+    <div className="h-screen w-screen bg-stone-800 text-white flex flex-col">
+      <div className="flex">
+        <span className="ml-auto">
+          <ArrowLink className="m-4" href="/">
+            Login
+          </ArrowLink>
+        </span>
+      </div>
 
-            <h2>Features:</h2>
-            <ul>
-              <li>
-                Pre-configured <code>postcss.config.js</code> and{' '}
-                <code>tailwind.config.js</code>.
-              </li>
-              <li>
-                Markdown and CMS Content friendly with{' '}
-                <code>@tailwindcss/typography</code>.
-              </li>
-              <li>
-                Form styles with <code>@tailwindcss/forms</code>.
-              </li>
-              <li>
-                <code>global.css</code> that contains Tailwind CSS directives.
-              </li>
-              <li>
-                <code>{'<Layout />'}</code> component.
-              </li>
-            </ul>
+      <div className="flex flex-col my-auto text-center">
+        <span className="-mt-12 font-bold text-[3rem]">
+          <span className="bg-gradient-to-br from-indigo-400 to-indigo-600 bg-clip-text font-extrabold text-transparent">
+            Steals
+          </span>
+          .com
+        </span>
+        <form onSubmit={handleSubmit(onSubmit)} className="mx-auto">
+          <div className="mt-1 relative rounded-md shadow-sm mx-auto">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <span className="text-black sm:text-sm">
+                <FontAwesomeIcon icon={faSearch} />
+              </span>
+            </div>
 
-            <h2>Guides</h2>
-            <ul>
-              <li>
-                <a
-                  href="https://nextjs.org/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Next.js
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://tailwindcss.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Tailwind CSS
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://github.com/tailwindlabs/tailwindcss-typography"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  @tailwindcss/typography
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://github.com/tailwindlabs/tailwindcss-forms"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  @tailwindcss/forms
-                </a>
-              </li>
-            </ul>
-
-            <h2>Form control examples</h2>
-            <form action="" className="mb-0 space-y-6">
-              <div>
-                <label
-                  htmlFor="sample-email"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Sample email input
-                </label>
-                <input
-                  type="email"
-                  name="sample-email"
-                  id="sample-email"
-                  placeholder="Enter your email address"
-                />
-              </div>
-              <div className="flex items-center">
-                <label htmlFor="sample-checkbox">
-                  <input
-                    type="checkbox"
-                    name="sample-checkbox"
-                    id="sample-checkbox"
-                  />
-                  <span className="ml-2">A sample checkbox</span>
-                </label>
-              </div>
-              <div className="flex items-center space-x-4">
-                <label htmlFor="sample-radio-1">
-                  <input type="radio" name="sample-radio" id="sample-radio-1" />
-                  <span className="ml-2">A sample radio number one</span>
-                </label>
-                <label htmlFor="sample-radio-2">
-                  <input type="radio" name="sample-radio" id="sample-radio-2" />
-                  <span className="ml-2">A sample radio number two</span>
-                </label>
-              </div>
-            </form>
-
-            <h2>Maintainer</h2>
-            <p>
-              This project template is maintained by{' '}
-              <a
-                href="https://earvinpiamonte.com"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                @earvinpiamonte
-              </a>{' '}
-              and publicly available on{' '}
-              <a
-                href="https://github.com/earvinpiamonte/nextjs-tailwindcss-template"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                GitHub
-              </a>
-              .
-            </p>
+            <input
+              type="text"
+              id="search"
+              {...register("search")}
+              className="focus:ring-indigo-500 ml-0.5 focus:border-indigo-500 block pl-7 pr-12 sm:text-sm border-gray-300 rounded-xl text-black w-[30rem]"
+              placeholder="Search for items"
+            />
           </div>
-        </div>
-      </section>
-    </Layout>
+        </form>
+        <span className="mt-2">Gumtree, Etsy, eBay</span>
+      </div>
+    </div>
   );
 };
 
